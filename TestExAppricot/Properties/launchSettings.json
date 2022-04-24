@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestExAppricot": {
+      "commandName": "Project",
+      "commandLineArgs": "-q"
+    }
+  }
+}

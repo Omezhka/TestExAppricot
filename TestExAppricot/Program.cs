@@ -1,118 +1,167 @@
 ﻿
 // See https://aka.ms/new-console-template for more information
 
-class Program
+partial class Program
 {
+    public class FileSystemEntity : IFileSystemEntity
+    {
+        private float size;
+        public bool IsDir { get; set; }
+        public string Name { get; set; } = "";
+        public float Size
+        {
+            get
+            {
+                float result = 0;
+
+                if (IsDir)
+                {
+                    if (SubEntites?.Count != 0)
+                    {
+                        foreach (FileSystemEntity ent in SubEntites)
+                        {
+                            result += ent.Size;
+                        }
+                    }
+                    size = result;
+                    return result;
+                }
+                else
+                {
+                    return size;
+                }
+            }
+            set
+            { size = value; }
+        }
+
+        public string Deep { get; set; }
+        public List<IFileSystemEntity> SubEntites { get; set; }
+        public FileSystemEntity(FileInfo file, string deep)
+        {
+            IsDir = false;
+            Name = file.Name;
+            Size = file.Length;
+            Deep = deep;
+            SubEntites = new List<IFileSystemEntity>();
+        }
+        public FileSystemEntity(DirectoryInfo dir, string deep, bool isDir)
+        {
+            Name = dir.Name;
+            Deep = deep;
+            IsDir = isDir;
+            SubEntites = new List<IFileSystemEntity>();
+
+            try
+            {
+                FileInfo[]? files = dir.GetFiles("*.*");
+                //создаём объект для каждого файла и добавляем в список
+                if (files != null)
+                {
+
+                    //выводим имена файлов в список
+
+                    foreach (FileInfo fi in files)
+                    {
+                        // Console.WriteLine($"{deep + "-"} {fi.Name} ");
+                        SubEntites.Add(new FileSystemEntity(fi, deep + "-"));
+                    }
+                }
+            }
+            catch (DirectoryNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            try
+            {
+                DirectoryInfo[]? subDirs = dir.GetDirectories("*.*");
+
+                //создаём объект для каждого подкаталога и добавляем в список
+                if (subDirs.Length > 0)
+                {
+                    for (int i = 0; i < subDirs.Length; i++)
+                    {
+                        // Console.WriteLine($"{deep + "-"} {subDirs[i].Name} ");
+                        SubEntites.Add(new FileSystemEntity(subDirs[i], deep + "-", true));
+                    }
+                }
+            }
+            catch (DirectoryNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        public void Output(string[] args, StreamWriter sw)
+        {
+            if (SubEntites.Count > 0)
+            {
+                if (args.Contains("-q") || args.Contains("--quite"))
+                {
+                    Console.WriteLine("-q (--quite) - признак вывода сообщений в стандартный поток вывода (если указана, то не выводить лог в консоль. Только в файл);");
+                    foreach (FileSystemEntity s in SubEntites)
+                    {
+                        sw.Write($"{s.Deep + "-"} {s.Name} ({s.size} bytes) \n");
+
+                        s.Output(args, sw);
+                    }
+                }
+                else
+                {
+
+                    foreach (FileSystemEntity s in SubEntites)
+                    {
+                        // sw.Write(s + "\n");
+                        sw.Write($"{s.Deep + "-"} {s.Name} ({s.size} bytes) \n");
+                        Console.WriteLine($"{s.Deep + "-"} {s.Name} ({s.size} bytes)");
+                        s.Output(args, sw);
+                    }
+
+                }
+
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{Deep} {Name} {size}"; // Тут все нужные поля вписываете, которые должны в файле быть
+        }
+    }
+
     static void Main(string[] args)
     {
         Console.Write("> ");
-        //задаем папку для обхода
-        string? rootDir = Console.ReadLine(); /*@"C:\Users\Наталья\source\repos\ConsoleApp3";*/
-        List<string> listWalk = new();
-        List<float> folderSize = new();
 
-       // folderSize = CalculateFolderSize(rootDir);
-        try
+        string? rootDir;
+
+        string outputFileName = $@"sizes-{DateTime.Now.Year}-{DateTime.Now.Month}-{DateTime.Now.Day}.txt"; // имя файла с результатом
+        string? directoryToWriteResult = Directory.GetCurrentDirectory();
+
+
+        if (args.Contains("-p") || args.Contains("--path"))
         {
-            Walk(new DirectoryInfo(rootDir), listWalk);
+            Console.WriteLine("-p (--path) - путь к папке для обхода");
+            rootDir = Console.ReadLine();
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine(ex.ToString());
-            Console.WriteLine("Повторите ввод");
-            Main(args);
+            rootDir = Directory.GetCurrentDirectory();
         }
-        foreach (string dir in listWalk)
+
+        if (args.Contains("-o") || args.Contains("--output"))
         {
-            char[] charsToTrim = { '-', ' ' };
-            //folderSize.Add(CalculateFolderSize(dir.Trim(charsToTrim)));
-           // foreach (float size in folderSize)
-            Console.WriteLine(dir +" "+ CalculateFolderSize(dir.Trim(charsToTrim)) +  " main");
+            Console.WriteLine("-o (--output) - путь к тестовому файлу, куда записать результаты выполнения расчёта (по-умолчанию файл sizes-YYYY-MM-DD.txt в текущей папке вызова программы);");
+            directoryToWriteResult = Console.ReadLine();
         }
+
+        var myDir = new FileSystemEntity(new DirectoryInfo(rootDir), "", true);
+
+
+        Console.WriteLine($"{myDir.Name} ({myDir.Size} bytes)");
+
+        using StreamWriter sw = new StreamWriter(Path.Combine(directoryToWriteResult, outputFileName));
+        myDir.Output(args, sw);
     }
 
-    static void Walk(DirectoryInfo root, List<string> listWalk, string tire = "-")
-    {
-        
-        FileInfo[]? files = null;
-        DirectoryInfo[]? subDirs;
-        double catalogSize;
-
-        // Получаем все файлы в текущем каталоге
-        try
-        {
-            files = root.GetFiles("*.*");
-        }
-        catch (DirectoryNotFoundException e)
-        {
-            Console.WriteLine(e.Message);
-        }
-
-        if (files != null)
-        {
-            //получаем все подкаталоги
-            subDirs = root.GetDirectories();
-
-            //получаем размер каталога
-          //  catalogSize = CalculateFolderSize(root.ToString());
-
-            //  Console.WriteLine($"{tire} {root.FullName} ({catalogSize} bytes) ");
-            listWalk.Add($"{tire} {root.FullName}");
-            //выводим имена файлов в консоль
-            foreach (FileInfo fi in files)
-            {
-                listWalk.Add($"{tire + "-"} {fi.Name} ({fi.Length} bytes)");
-               // Console.WriteLine($"{tire + "-"} {fi.Name} ({fi.Length} bytes)");
-            }
-
-            //проходим по каждому подкаталогу
-            foreach (DirectoryInfo dirInfo in subDirs)
-            {
-                //РЕКУРСИЯ
-                Walk(dirInfo, listWalk, tire + "-");
-               
-            }
-           
-        }
-        
-    }
-
-    protected static float CalculateFolderSize(string folder)
-    {
-        float folderSize = 0.0f;
-        
-        try
-        {
-            //Checks if the path is valid or not
-            if (!Directory.Exists(folder))
-                return folderSize;
-            else
-            {
-                try
-            {
-                foreach (string file in Directory.GetFiles(folder))
-                {
-                    if (File.Exists(file))
-                    {
-                        FileInfo finfo = new FileInfo(file);
-                        folderSize += finfo.Length;
-                        
-                    }
-                }
-
-                foreach (string dir in Directory.GetDirectories(folder))
-                    folderSize += CalculateFolderSize(dir);
-            }
-            catch (NotSupportedException e)
-            {
-                Console.WriteLine("Unable to calculate folder size: {0}", e.Message);
-            }
-             }
-        }
-        catch (UnauthorizedAccessException e)
-        {
-            Console.WriteLine("Unable to calculate folder size: {0}", e.Message);
-        }
-        return folderSize;
-    }
 }
