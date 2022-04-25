@@ -109,12 +109,17 @@ partial class Program
                 }
                 else
                 {
-
+                    Console.WriteLine($"{Deep + "-"} {Name} {Size}");
+                    sw.Write($"{Deep + "-"} {Name} {Size} \n");
                     foreach (FileSystemEntity s in SubEntites)
                     {
                         // sw.Write(s + "\n");
-                        sw.Write($"{s.Deep + "-"} {s.Name} ({s.size} bytes) \n");
-                        Console.WriteLine($"{s.Deep + "-"} {s.Name} ({s.size} bytes)");
+
+                        if (!s.IsDir)
+                        {
+                            sw.Write($"{s.Deep + "-"} {s.Name} ({s.size} bytes) \n");
+                            Console.WriteLine($"{s.Deep + "-"} {s.Name} ({s.size} bytes)");
+                        }
                         s.Output(args, sw);
                     }
 
@@ -123,15 +128,15 @@ partial class Program
             }
         }
 
-        public override string ToString()
-        {
-            return $"{Deep} {Name} {size}"; // Тут все нужные поля вписываете, которые должны в файле быть
-        }
+        //public override string ToString()
+        //{
+        //    return $"{Deep} {Name} {size}"; // Тут все нужные поля вписываете, которые должны в файле быть
+        //}
     }
 
     static void Main(string[] args)
     {
-        Console.Write("> ");
+        //Console.Write("> ");
 
         string? rootDir;
 
@@ -158,7 +163,7 @@ partial class Program
         var myDir = new FileSystemEntity(new DirectoryInfo(rootDir), "", true);
 
 
-        Console.WriteLine($"{myDir.Name} ({myDir.Size} bytes)");
+        //  Console.WriteLine($"{myDir.Name} ({myDir.Size} bytes)");
 
         using StreamWriter sw = new StreamWriter(Path.Combine(directoryToWriteResult, outputFileName));
         myDir.Output(args, sw);
