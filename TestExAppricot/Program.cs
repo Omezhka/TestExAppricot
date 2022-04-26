@@ -45,6 +45,20 @@ partial class Program
             Deep = deep;
             SubEntites = new List<IFileSystemEntity>();
         }
+        //private static bool IsFileNameValid(string fileName)
+        //{
+        //    if ((fileName == null) || (fileName.IndexOfAny(Path.GetInvalidPathChars()) != -1))
+        //        return false;
+        //    try
+        //    {
+        //        var tempFileInfo = new FileInfo(fileName);
+        //        return true;
+        //    }
+        //    catch (NotSupportedException)
+        //    {
+        //        return false;
+        //    }
+        //}
         public FileSystemEntity(DirectoryInfo dir, string deep, bool isDir)
         {
             Name = dir.Name;
@@ -54,6 +68,8 @@ partial class Program
 
             try
             {
+                // if (IsFileNameValid(Name))
+                // {
                 FileInfo[]? files = dir.GetFiles("*.*");
                 //создаём объект для каждого файла и добавляем в список
                 if (files != null)
@@ -67,11 +83,13 @@ partial class Program
                         SubEntites.Add(new FileSystemEntity(fi, deep + "-"));
                     }
                 }
+                // }
             }
             catch (DirectoryNotFoundException e)
             {
                 Console.WriteLine(e.Message);
             }
+
 
             try
             {
@@ -95,55 +113,89 @@ partial class Program
 
         public void Output(string[] args, StreamWriter sw)
         {
-            if (SubEntites.Count > 0)
+            if (args.Contains("-q") || args.Contains("--quite"))
             {
-                if (args.Contains("-q") || args.Contains("--quite"))
+                // Console.WriteLine("-q (--quite) - признак вывода сообщений в стандартный поток вывода (если указана, то не выводить лог в консоль. Только в файл);");
+                if (args.Contains("-h") || args.Contains("--humanread"))
                 {
-                    Console.WriteLine("-q (--quite) - признак вывода сообщений в стандартный поток вывода (если указана, то не выводить лог в консоль. Только в файл);");
-                    foreach (FileSystemEntity s in SubEntites)
+                    sw.Write($"{Deep + "-"} {Name} ({FormatBytes(Size)}) \n");
+                    if (SubEntites.Count > 0)
                     {
-                        sw.Write($"{s.Deep + "-"} {s.Name} ({s.size} bytes) \n");
-
-                        s.Output(args, sw);
+                        foreach (FileSystemEntity s in SubEntites)
+                        {
+                            s.Output(args, sw);
+                        }
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"{Deep + "-"} {Name} {Size}");
-                    sw.Write($"{Deep + "-"} {Name} {Size} \n");
-                    foreach (FileSystemEntity s in SubEntites)
+                    sw.Write($"{Deep + "-"} {Name} ({Size} bytes) \n");
+                    if (SubEntites.Count > 0)
                     {
-                        // sw.Write(s + "\n");
-
-                        if (!s.IsDir)
+                        foreach (FileSystemEntity s in SubEntites)
                         {
-                            sw.Write($"{s.Deep + "-"} {s.Name} ({s.size} bytes) \n");
-                            Console.WriteLine($"{s.Deep + "-"} {s.Name} ({s.size} bytes)");
+                            s.Output(args, sw);
                         }
-                        s.Output(args, sw);
                     }
-
                 }
-
+            }
+            else
+            {
+                if (args.Contains("-h") || args.Contains("--humanread"))
+                {
+                    Console.WriteLine($"{Deep + "-"} {Name} ({FormatBytes(Size)})");
+                    sw.Write($"{Deep + "-"} {Name} ({FormatBytes(size)}) \n");
+                    if (SubEntites.Count > 0)
+                    {
+                        foreach (FileSystemEntity s in SubEntites)
+                        {
+                            s.Output(args, sw);
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"{Deep + "-"} {Name} ({Size} bytes)");
+                    sw.Write($"{Deep + "-"} {Name} ({size} bytes) \n");
+                    if (SubEntites.Count > 0)
+                    {
+                        foreach (FileSystemEntity s in SubEntites)
+                        {
+                            s.Output(args, sw);
+                        }
+                    }
+                }
             }
         }
 
-        //public override string ToString()
-        //{
-        //    return $"{Deep} {Name} {size}"; // Тут все нужные поля вписываете, которые должны в файле быть
-        //}
+        private static string FormatBytes(float bytes)
+        {
+            string[] Suffix = { "B", "KB", "MB", "GB", "TB" };
+            int i;
+            double dblSByte = bytes;
+            for (i = 0; i < Suffix.Length && bytes >= 1024; i++, bytes /= 1024)
+            {
+                dblSByte = bytes / 1024.0;
+            }
+
+            return string.Format($"{dblSByte:0.##} {Suffix[i]}");
+        }
     }
 
     static void Main(string[] args)
     {
-        //Console.Write("> ");
+        Options(args, out string outputFileName, out string? directoryToWriteResult, out FileSystemEntity myDir);
 
+        using StreamWriter sw = new StreamWriter(Path.Combine(directoryToWriteResult, outputFileName));
+        myDir.Output(args, sw);
+    }
+
+    private static void Options(string[] args, out string outputFileName, out string? directoryToWriteResult, out FileSystemEntity myDir)
+    {
         string? rootDir;
 
-        string outputFileName = $@"sizes-{DateTime.Now.Year}-{DateTime.Now.Month}-{DateTime.Now.Day}.txt"; // имя файла с результатом
-        string? directoryToWriteResult = Directory.GetCurrentDirectory();
-
-
+        outputFileName = $@"sizes-{DateTime.Now.Year}-{DateTime.Now.Month}-{DateTime.Now.Day}.txt";
+        directoryToWriteResult = Directory.GetCurrentDirectory();
         if (args.Contains("-p") || args.Contains("--path"))
         {
             Console.WriteLine("-p (--path) - путь к папке для обхода");
@@ -160,13 +212,6 @@ partial class Program
             directoryToWriteResult = Console.ReadLine();
         }
 
-        var myDir = new FileSystemEntity(new DirectoryInfo(rootDir), "", true);
-
-
-        //  Console.WriteLine($"{myDir.Name} ({myDir.Size} bytes)");
-
-        using StreamWriter sw = new StreamWriter(Path.Combine(directoryToWriteResult, outputFileName));
-        myDir.Output(args, sw);
+        myDir = new FileSystemEntity(new DirectoryInfo(rootDir), "", true);
     }
-
 }
