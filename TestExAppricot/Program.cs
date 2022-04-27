@@ -45,20 +45,7 @@ partial class Program
             Deep = deep;
             SubEntites = new List<IFileSystemEntity>();
         }
-        //private static bool IsFileNameValid(string fileName)
-        //{
-        //    if ((fileName == null) || (fileName.IndexOfAny(Path.GetInvalidPathChars()) != -1))
-        //        return false;
-        //    try
-        //    {
-        //        var tempFileInfo = new FileInfo(fileName);
-        //        return true;
-        //    }
-        //    catch (NotSupportedException)
-        //    {
-        //        return false;
-        //    }
-        //}
+
         public FileSystemEntity(DirectoryInfo dir, string deep, bool isDir)
         {
             Name = dir.Name;
@@ -68,8 +55,7 @@ partial class Program
 
             try
             {
-                // if (IsFileNameValid(Name))
-                // {
+
                 FileInfo[]? files = dir.GetFiles("*.*");
                 //создаём объект для каждого файла и добавляем в список
                 if (files != null)
@@ -83,12 +69,16 @@ partial class Program
                         SubEntites.Add(new FileSystemEntity(fi, deep + "-"));
                     }
                 }
-                // }
+
             }
             catch (DirectoryNotFoundException e)
             {
                 Console.WriteLine(e.Message);
             }
+            //catch (IOException ex)
+            //{
+            //    Console.WriteLine(ex.Message);
+            //}
 
 
             try
@@ -105,10 +95,14 @@ partial class Program
                     }
                 }
             }
-            catch (DirectoryNotFoundException e)
+            catch (DirectoryNotFoundException ex)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine(ex.Message);
             }
+            //catch(IOException ex)
+            //{
+            //    Console.WriteLine(ex.Message);
+            //}
         }
 
         public void Output(string[] args, StreamWriter sw)
@@ -116,8 +110,11 @@ partial class Program
             if (args.Contains("-q") || args.Contains("--quite"))
             {
                 // Console.WriteLine("-q (--quite) - признак вывода сообщений в стандартный поток вывода (если указана, то не выводить лог в консоль. Только в файл);");
+                //if (Directory.Exists(Name))
+                //{
                 if (args.Contains("-h") || args.Contains("--humanread"))
                 {
+
                     sw.Write($"{Deep + "-"} {Name} ({FormatBytes(Size)}) \n");
                     if (SubEntites.Count > 0)
                     {
@@ -126,10 +123,11 @@ partial class Program
                             s.Output(args, sw);
                         }
                     }
+
                 }
                 else
                 {
-                    sw.Write($"{Deep + "-"} {Name} ({Size} bytes) \n");
+                    sw.Write($"{Deep + "-"} {Name} ({Size} B) \n");
                     if (SubEntites.Count > 0)
                     {
                         foreach (FileSystemEntity s in SubEntites)
@@ -138,9 +136,12 @@ partial class Program
                         }
                     }
                 }
+                //  }
             }
             else
             {
+                //if (Directory.Exists(Name))
+                //{
                 if (args.Contains("-h") || args.Contains("--humanread"))
                 {
                     Console.WriteLine($"{Deep + "-"} {Name} ({FormatBytes(Size)})");
@@ -155,8 +156,8 @@ partial class Program
                 }
                 else
                 {
-                    Console.WriteLine($"{Deep + "-"} {Name} ({Size} bytes)");
-                    sw.Write($"{Deep + "-"} {Name} ({size} bytes) \n");
+                    Console.WriteLine($"{Deep + "-"} {Name} ({Size} B)");
+                    sw.Write($"{Deep + "-"} {Name} ({size} B) \n");
                     if (SubEntites.Count > 0)
                     {
                         foreach (FileSystemEntity s in SubEntites)
@@ -165,6 +166,7 @@ partial class Program
                         }
                     }
                 }
+                // }
             }
         }
 
@@ -177,16 +179,17 @@ partial class Program
             {
                 dblSByte = bytes / 1024.0;
             }
-
             return string.Format($"{dblSByte:0.##} {Suffix[i]}");
         }
     }
 
     static void Main(string[] args)
     {
+        Console.OutputEncoding = System.Text.Encoding.Unicode;
         Options(args, out string outputFileName, out string? directoryToWriteResult, out FileSystemEntity myDir);
 
         using StreamWriter sw = new StreamWriter(Path.Combine(directoryToWriteResult, outputFileName));
+
         myDir.Output(args, sw);
     }
 
@@ -200,6 +203,11 @@ partial class Program
         {
             Console.WriteLine("-p (--path) - путь к папке для обхода");
             rootDir = Console.ReadLine();
+            if (rootDir == "" || !Directory.Exists(rootDir))
+            {
+                Console.WriteLine($"Некорректный путь. Выбрана стандартная папка. \n");
+                rootDir = Directory.GetCurrentDirectory();
+            }
         }
         else
         {
@@ -210,6 +218,7 @@ partial class Program
         {
             Console.WriteLine("-o (--output) - путь к тестовому файлу, куда записать результаты выполнения расчёта (по-умолчанию файл sizes-YYYY-MM-DD.txt в текущей папке вызова программы);");
             directoryToWriteResult = Console.ReadLine();
+
         }
 
         myDir = new FileSystemEntity(new DirectoryInfo(rootDir), "", true);
