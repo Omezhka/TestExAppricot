@@ -198,14 +198,15 @@ partial class Program
         string? rootDir;
 
         outputFileName = $@"sizes-{DateTime.Now.Year}-{DateTime.Now.Month}-{DateTime.Now.Day}.txt";
-        directoryToWriteResult = Directory.GetCurrentDirectory();
+        directoryToWriteResult = null;
         if (args.Contains("-p") || args.Contains("--path"))
         {
-            Console.WriteLine("-p (--path) - путь к папке для обхода");
-            rootDir = Console.ReadLine();
+          //  Console.WriteLine(args[Array.IndexOf(args, "-p")+1]);
+          //  Console.WriteLine("-p (--path) - путь к папке для обхода");
+            rootDir = args[Array.IndexOf(args, "-p") + 1]; //Console.ReadLine();
             if (rootDir == "" || !Directory.Exists(rootDir))
             {
-                Console.WriteLine($"Некорректный путь. Выбрана стандартная папка. \n");
+                Console.WriteLine($"Некорректный путь в параметре -p (--path). Выбрана стандартная папка. \n");
                 rootDir = Directory.GetCurrentDirectory();
             }
         }
@@ -216,8 +217,13 @@ partial class Program
 
         if (args.Contains("-o") || args.Contains("--output"))
         {
-            Console.WriteLine("-o (--output) - путь к тестовому файлу, куда записать результаты выполнения расчёта (по-умолчанию файл sizes-YYYY-MM-DD.txt в текущей папке вызова программы);");
-            directoryToWriteResult = Console.ReadLine();
+           // Console.WriteLine("-o (--output) - путь к тестовому файлу, куда записать результаты выполнения расчёта (по-умолчанию файл sizes-YYYY-MM-DD.txt в текущей папке вызова программы);");
+            directoryToWriteResult = args[Array.IndexOf(args, "-o") + 1]; //Console.ReadLine();
+            if (directoryToWriteResult == "" || !Directory.Exists(directoryToWriteResult))
+            {
+                Console.WriteLine($"Некорректный путь в параметре -o (--output). Выбрана стандартная папка. \n");
+                directoryToWriteResult = Directory.GetCurrentDirectory();
+            }
 
         }
 

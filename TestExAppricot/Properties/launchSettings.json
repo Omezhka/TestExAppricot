@@ -2,7 +2,7 @@
   "profiles": {
     "TestExAppricot": {
       "commandName": "Project",
-      "commandLineArgs": "-q"
+      "commandLineArgs": "-p C:\\Users\\Наталья\\source\\repos\\TestExAppricot-beta\\TestExAppricot\\bin\\Debug -o  C:\\Users\\Наталья\\source\\repos\\TestExAppricot-beta\\TestExAppricot\\bin\\Debug -o"
     }
   }
 }
