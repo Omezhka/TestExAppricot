@@ -1,6 +1,4 @@
-﻿
-
-partial class Program
+﻿namespace TestExAppricot
 {
     public interface IFileSystemEntity
     {
@@ -10,10 +8,5 @@ partial class Program
         public string Deep { get; set; }
         public void Output(string[] args, StreamWriter sw);
         public List<IFileSystemEntity> SubEntites { get; set; }
-
     }
-
-    
-
-  
 }
